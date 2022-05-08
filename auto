@@ -1,0 +1,290 @@
+#!/bin/bash
+# script that offers a quick menu for compiling/building/running/etc a program
+
+#// initialization \\\\\\\\#
+#? Set safe bash options
+set -euo pipefail
+
+IFS=$'\n\t'
+
+#// variable declaration \\\\\\\\#
+#? temporary directory location
+tmp_dir="/tmp/auto"
+mkdir -p "$tmp_dir"
+
+tool=''
+file=''
+repeat=false
+less=true
+
+#? usage text to display with -h
+usage_text="Usage: auto [-r] [-t] [-l] TOOL FILE\n\
+Or: auto [-r] [-t] [-l] TOOL\n\
+Or: auto -f FILE\n\
+Or: auto\n"
+#\\\\\\\\ variable declaration //#
+
+#// functions \\\\\\\\#
+exe_cmdline () {
+    printf "\033[0;33musing '\033[0m$1\033[0;33m'\033[0m\n"
+    printf "\033[0;36m// output \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\033[0m\n"
+    IFS=$' \n\t'
+    $1 ||:
+    IFS=$'\n\t'
+    exit_status=$?
+    printf "\033[0;36m//////// output //\033[0m\n"
+    printf "\033[0;33m$tool exited with code \033[0;31m$exit_status\033[0m\n"
+}
+
+guess_by_ext () {
+    case "$1" in
+        *.c | *.cpp | *.m | *.ada | *.go | *.d ) echo "gcc";;
+        *.rs | Cargo.* ) echo "cargo";;
+    esac
+}
+
+clean_ws () {
+        echo "$1" | tr -s " " | sed -e 's/[[:space:]]*$//'
+}
+
+clear_exit () {
+    clear; exit
+}
+#\\\\\\\\ functions //#
+#\\\\\\\\ initialization //#
+
+#// parse command line arguments \\\\\\\\#
+set +u
+PARAMS=""
+while (( "$#" )); do
+    case "$1" in
+
+    #? repeat when done instead of exiting
+    -r|--repeat)
+        repeat=true
+        shift
+        ;;
+
+    #? tool to use
+    -t|--tool)
+        if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+            tool=$2
+            shift 2
+        
+        else
+            echo "auto: $1: missing argument" >&2
+            exit 1
+        
+        fi
+        ;;
+
+    #? file to operate on
+    -f|--file)
+        if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+            file=$2
+            shift 2
+        
+        else
+            echo "auto: $1: missing argument" >&2
+            exit 1
+        
+        fi
+        ;;
+
+    #? don't pipe output to less
+    -l|--no-less)
+        less=false
+        shift
+        ;;
+
+    #? show help
+    -h|--help)
+        printf "$usage_text"
+        exit
+        ;;
+
+    #? unrecognized flags
+    -*|--*=)
+        echo "auto: $1: unrecognized flag" >&2
+        exit 1
+        ;;
+
+    #? preserve positional arguments
+    *)
+        PARAMS="$PARAMS $1"
+        shift
+        ;;
+
+    esac
+done
+set -u
+
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+[ "$tool" = "" ] && [ $# -ge 1 ] && tool=$1
+
+if [ "$file" = "" ] && [ $# = 1 ]; then
+    file=$1
+
+elif [ "$file" = "" ] && [ $# = 2 ]; then
+    file=$2
+
+fi
+#\\\\\\\\ parse command line arguments //#
+
+#// guess tool to use \\\\\\\\#
+if [ "$tool" = "" ]; then
+
+    #? no file selected
+    if [ "$file" = "" ]; then
+
+        #? use install/build script
+        [ "$(find -maxdepth 1 -regextype posix-extended -iregex '.*(install|build|configure|make).*')" ] && tool='script'
+
+        #? use make
+        [ "$(find -maxdepth 1 -iname makefile)" ] && tool='make'
+
+    #? guess tool for all files in current directory and use first match
+    else
+        for f in *; do
+            guess=$(guess_by_ext "$f")
+            [ "$guess" != "" ] && tool="$guess" && file="$f" && break
+        done
+    fi
+
+    #? file selected
+elif [ "$file" != "" ]; then
+    tool=$(guess_by_ext "$file")
+fi
+
+
+#? if no suitable tool was found, exit with an error
+[ "$tool" = "" ] && echo "auto: no suitable tool was found" 2>&1 && exit 1
+#\\\\\\\\ guess tool to use //#
+
+#// main loop \\\\\\\\#
+while :; do
+    #// tool-specific code \\\\\\\\#
+    case $tool in
+        make)
+            #? prompt for target
+            [ -f "$tmp_dir/make-target" ] \
+            && make_target="$(cat $tmp_dir/make_target)" || make_target=""
+            dialog --inputbox "make target (empty for default)" -1 -1 \
+            "$make_target" 2> "$tmp_dir/make-target" || clear_exit
+            make_target="$(cat $tmp_dir/make-target)"
+
+            #? generate command line
+            cmdline="make $make_target"
+            cmdline=$(clean_ws "$cmdline")
+            ;;
+
+        gcc)
+            #? prompt for compile optimizers
+            dialog --menu "gcc optimizers" -1 -1 0 \
+            "-O0"    "optimize for compile time" \
+            "-O1"    "optimize for speed/size, level 1" \
+            "-O2"    "optimize for speed/size, level 2" \
+            "-O3"    "optimize for speed/size, level 3" \
+            "-Ofast" "optimize for speed, disregarding standards compliance" \
+            "-Og"    "optimize for debugging" \
+            "-Os"    "optimize for size" \
+            2> "$tmp_dir/gcc-optimizers" || clear_exit
+            gcc_optimizers="$(cat $tmp_dir/gcc-optimizers)"
+
+            #? prompt for other options
+            [ -f "$tmp_dir/gcc-options" ] \
+            && gcc_options="$(cat $tmp_dir/gcc-options)" || gcc_options=""
+            dialog --inputbox "gcc options (empty for none)" -1 -1 \
+                "$gcc_options" 2> "$tmp_dir/gcc-options" || clear_exit
+            gcc_options="$(cat $tmp_dir/gcc-options)"
+
+            #? generate command line
+            cmdline="gcc $gcc_optimizers $gcc_options $file"
+            cmdline=$(clean_ws "$cmdline")
+            ;;
+
+        cargo)
+            dialog --menu "cargo commands" -1 -1 0 \
+            "build" "compile the package" \
+            "check" "analyze the package and report errors" \
+            "clean" "remove the 'target' directory" \
+            "doc" "build package and dependencies' documentation" \
+            "run" "compile and run package" \
+            "test" "run tests" \
+            "bench" "run benchmarks" \
+            "update" "update dependencies in Cargo.lock" \
+            2> "$tmp_dir/cargo-command" || clear_exit
+            cargo_command="$(cat $tmp_dir/cargo-command)"
+
+            #? prompt for other options
+            [ -f "$tmp_dir/cargo-options" ] \
+            && cargo_options="$(cat $tmp_dir/cargo-options)" || cargo_options=""
+            dialog --inputbox "cargo options (empty for none)" -1 -1 \
+            "$cargo_options" 2> "$tmp_dir/cargo-options" || clear_exit
+            cargo_options="$(cat $tmp_dir/cargo-options)"
+
+            #? generate command line
+            cmdline="cargo --color=always $cargo_command $cargo_options"
+            cmdline=$(clean_ws "$cmdline")
+            ;;
+
+        script)
+            #? find scripts in current directory
+            scripts="$(find -maxdepth 1 -regextype posix-extended -iregex \
+                '.*(\.sh|.*(install|build|make|configure).*)' \
+            )"
+            
+            #? prompt for which script to run
+            dialog --menu "build scripts" -1 -1 0 \
+            $(echo "$scripts" | awk '{print $1,"\t",$1}') \
+            2> "$tmp_dir/selected-script" || clear_exit
+            selected_script="$(cat $tmp_dir/selected-script)"
+
+            #? get a hash for the selected script
+            selected_script_hash=$(readlink -f $selected_script | md5sum | head -c-4)
+
+            #? prompt for other options
+            [ -s "$tmp_dir/script-$selected_script_hash" ] \
+            && script_cmdline="$(cat $tmp_dir/script-$selected_script_hash)" \
+            || script_cmdline="$selected_script"
+            dialog --inputbox "script cmdline (empty for none)" -1 -1 \
+            "$script_cmdline" 2> "$tmp_dir/script-$selected_script_hash" || clear_exit
+            script_cmdline="$(cat $tmp_dir/script-$selected_script_hash)"
+
+            #? generate command line
+            cmdline="$script_cmdline"
+            cmdline=$(clean_ws "$cmdline")
+            ;;
+
+        *)
+            #? prompt for command line arguments to tool
+            [ -f "$tmp_dir/$tool-arguments" ] \
+            && tool_arguments="$(cat $tmp_dir/$tool-arguments)" || tool_arguments=""
+            dialog --inputbox "$tool arguments" -1 -1 \
+            "$tool_arguments" 2> "$tmp_dir/$tool-arguments" || clear_exit
+            tool_arguments="$(cat $tmp_dir/$tool-arguments)"
+
+            #? generate command line
+            cmdline="$tool $tool_arguments"
+            cmdline=$(clean_ws "$cmdline")
+            ;;
+
+    esac
+    #\\\\\\\\ tool-specific code //#
+
+    #? print newlines before clearing the screen, so it's easy to see where
+    #  the current run starts
+    printf "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+    clear
+
+    #? run tool and log output, if any
+    $less \
+    && exe_cmdline "$cmdline" 2>&1 | less -R \
+    || exe_cmdline "$cmdline" 2>&1
+
+    $repeat || break
+    $less || read -p ... -n1
+done
+#\\\\\\\\ main loop //#
