@@ -238,7 +238,7 @@ while :; do
 
             #? prompt for which script to run
             dialog --menu "build scripts" -1 -1 0 \
-            $(echo "$scripts" | awk '{print $1,"\t",$1}') \
+            $(echo "$scripts" | awk '{n=split($NF,a,"/"); print a[n],"\t",$1}') \
             2> "$tmp_dir/selected-script" || clear_exit
             selected_script="$(cat $tmp_dir/selected-script)"
 
