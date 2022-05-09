@@ -272,7 +272,7 @@ while :; do
             #? prompt for which options to enable
             dialog --checklist 'makepkg options' -1 -1 0 -- \
             '--clean'       'clean up work files after build'           ${opt_clean:-off}       \
-            '--cleanbuild'  'remove \$srcdir/ dir before building'      ${opt_cleanbuild:-off}  \
+            '--cleanbuild'  'remove $srcdir/ dir before building'       ${opt_cleanbuild:-off}  \
             '--force'       'overwrite existing package'                ${opt_force:-off}       \
             '--repackage'   'repackage contents without rebuilding'     ${opt_repackage:-off}   \
             '--syncdeps'    'install missing dependencies with pacman'  ${opt_syncdeps:-off}    \
