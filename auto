@@ -143,8 +143,8 @@ if [ "$tool" = "" ]; then
 		#? use makepkg
 		[ "$(find -maxdepth 1 -name PKGBUILD)" ] && tool='makepkg'
 
-        #? use install/build script
-        [ "$(find -maxdepth 1 -regextype posix-extended -iregex '.*(install|build|configure|make).*')" ] && tool='script'
+		#? use install/build script
+        [ "$tool" != 'makepkg' ] && [ "$(find -maxdepth 1 -regextype posix-extended -iregex '.*(install|build|configure|make).*')" ] && tool='script'
 
         #? use make
         [ "$(find -maxdepth 1 -iname makefile)" ] && tool='make'
