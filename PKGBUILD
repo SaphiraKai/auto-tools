@@ -1,6 +1,6 @@
 # Maintainer: Saphira Kai <kai.saphira@gmail.com>
 pkgname='auto-tools'
-pkgver=1.0.r0.gd046c87
+pkgver=1.0.r6.gd355d92
 pkgrel=1
 epoch=
 pkgdesc='an all-in-one collection of useful automated tools for developers'
