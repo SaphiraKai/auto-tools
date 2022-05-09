@@ -38,9 +38,9 @@ exe_cmdline () {
 
 guess_by_ext () {
     case "$1" in
-        *.c | *.cpp | *.m | *.ada | *.go | *.d ) echo 'gcc';;
-        *.rs | Cargo.* ) echo 'cargo';;
-        PKGBUILD ) echo 'makepkg';;
+        *.c | *.cpp | *.m | *.ada | *.go | *.d )    echo 'gcc';;
+        *.rs | Cargo.* )                            echo 'cargo';;
+        PKGBUILD )                                  echo 'makepkg';;
     esac
 }
 
@@ -140,10 +140,10 @@ if [ "$tool" = "" ]; then
     #? no file selected
     if [ "$file" = "" ]; then
 
-		#? use makepkg
-		[ "$(find -maxdepth 1 -name PKGBUILD)" ] && tool='makepkg'
+        #? use makepkg
+        [ "$(find -maxdepth 1 -name PKGBUILD)" ] && tool='makepkg'
 
-		#? use install/build script
+        #? use install/build script
         [ "$tool" != 'makepkg' ] && [ "$(find -maxdepth 1 -regextype posix-extended -iregex '.*(install|build|configure|make).*')" ] && tool='script'
 
         #? use make
@@ -186,14 +186,14 @@ while :; do
 
         gcc)
             #? prompt for compile optimizers
-            dialog --menu "gcc optimizers" -1 -1 0 \
-            "-O0"    "optimize for compile time" \
-            "-O1"    "optimize for speed/size, level 1" \
-            "-O2"    "optimize for speed/size, level 2" \
-            "-O3"    "optimize for speed/size, level 3" \
-            "-Ofast" "optimize for speed, disregarding standards compliance" \
-            "-Og"    "optimize for debugging" \
-            "-Os"    "optimize for size" \
+            dialog --menu 'gcc optimizers' -1 -1 0 \
+            '-O0'    'optimize for compile time'                                \
+            '-O1'    'optimize for speed/size, level 1'                         \
+            '-O2'    'optimize for speed/size, level 2'                         \
+            '-O3'    'optimize for speed/size, level 3'                         \
+            '-Ofast' 'optimize for speed, disregarding standards compliance'    \
+            '-Og'    'optimize for debugging'                                   \
+            '-Os'    'optimize for size'                                        \
             2> "$tmp_dir/gcc-optimizers" || clear_exit
             gcc_optimizers="$(cat $tmp_dir/gcc-optimizers)"
 
@@ -210,15 +210,15 @@ while :; do
             ;;
 
         cargo)
-            dialog --menu "cargo commands" -1 -1 0 \
-            "build" "compile the package" \
-            "check" "analyze the package and report errors" \
-            "clean" "remove the 'target' directory" \
-            "doc" "build package and dependencies' documentation" \
-            "run" "compile and run package" \
-            "test" "run tests" \
-            "bench" "run benchmarks" \
-            "update" "update dependencies in Cargo.lock" \
+            dialog --menu 'cargo commands' -1 -1 0 \
+            'build'     'compile the package'                           \
+            'check'     'analyze the package and report errors'         \
+            'clean'     "remove the 'target' directory"                 \
+            'doc'       "build package and dependencies' documentation" \
+            'run'       'compile and run package'                       \
+            'test'      'run tests'                                     \
+            'bench'     'run benchmarks'                                \
+            'update'    'update dependencies in Cargo.lock'             \
             2> "$tmp_dir/cargo-command" || clear_exit
             cargo_command="$(cat $tmp_dir/cargo-command)"
 
@@ -262,19 +262,21 @@ while :; do
             cmdline=$(clean_ws "$cmdline")
             ;;
 
-		makepkg)
-			PREV_IFS="$IFS"
-			export IFS=' '
-			for option in $(cat $tmp_dir/makepkg-options); do declare opt_${option#--}=on; done
-			export IFS="$PREV_IFS"
+        makepkg)
+            #? temporarily change $IFS to allow word splitting
+            PREV_IFS="$IFS"
+            export IFS=' '
+            for option in $(cat $tmp_dir/makepkg-options); do declare opt_${option##*-}=on; done
+            export IFS="$PREV_IFS"
 
+            #? prompt for which options to enable
             dialog --checklist 'makepkg options' -1 -1 0 -- \
-            '--clean'		'clean up work files after build'			${opt_clean:-off}		\
-            '--cleanbuild'	'remove \$srcdir/ dir before building'		${opt_cleanbuild:-off}	\
-            '--force'		'overwrite existing package'				${opt_force:-off}		\
-            '--repackage'	'repackage contents without rebuilding'		${opt_repackage:-off}	\
-            '--syncdeps'	'install missing dependencies with pacman'	${opt_syncdeps:-off}	\
-            '--sign'		'sign the resulting package with gpg'		${opt_sign:-off}		\
+            '--clean'       'clean up work files after build'           ${opt_clean:-off}       \
+            '--cleanbuild'  'remove \$srcdir/ dir before building'      ${opt_cleanbuild:-off}  \
+            '--force'       'overwrite existing package'                ${opt_force:-off}       \
+            '--repackage'   'repackage contents without rebuilding'     ${opt_repackage:-off}   \
+            '--syncdeps'    'install missing dependencies with pacman'  ${opt_syncdeps:-off}    \
+            '--sign'        'sign the resulting package with gpg'       ${opt_sign:-off}        \
             2> "$tmp_dir/makepkg-options" || clear_exit
             makepkg_options="$(cat $tmp_dir/makepkg-options)"
 
@@ -308,7 +310,7 @@ while :; do
 
     #? print newlines before clearing the screen, so it's easy to see where
     #  the current run starts
-    printf "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+    printf '\n%.0s' {1..16}
     clear
 
     #? run tool and log output, if any
