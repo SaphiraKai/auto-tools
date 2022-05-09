@@ -38,8 +38,8 @@ exe_cmdline () {
 
 guess_by_ext () {
     case "$1" in
-        *.c | *.cpp | *.m | *.ada | *.go | *.d ) echo "gcc";;
-        *.rs | Cargo.* ) echo "cargo";;
+        *.c | *.cpp | *.m | *.ada | *.go | *.d ) echo 'gcc';;
+        *.rs | Cargo.* ) echo 'cargo';;
     esac
 }
 
