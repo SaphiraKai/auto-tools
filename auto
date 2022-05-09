@@ -315,7 +315,7 @@ while :; do
 
     #? run tool and log output, if any
     $less \
-    && exe_cmdline "$cmdline" 2>&1 | less -R \
+    && exe_cmdline "$cmdline" 2>&1 | less +F -R \
     || exe_cmdline "$cmdline" 2>&1
 
     $repeat || break
