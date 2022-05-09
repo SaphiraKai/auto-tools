@@ -40,6 +40,7 @@ guess_by_ext () {
     case "$1" in
         *.c | *.cpp | *.m | *.ada | *.go | *.d ) echo 'gcc';;
         *.rs | Cargo.* ) echo 'cargo';;
+        PKGBUILD ) echo 'makepkg';;
     esac
 }
 
@@ -138,6 +139,9 @@ if [ "$tool" = "" ]; then
 
     #? no file selected
     if [ "$file" = "" ]; then
+
+		#? use makepkg
+		[ "$(find -maxdepth 1 -name PKGBUILD)" ] && tool='makepkg'
 
         #? use install/build script
         [ "$(find -maxdepth 1 -regextype posix-extended -iregex '.*(install|build|configure|make).*')" ] && tool='script'
@@ -255,6 +259,34 @@ while :; do
 
             #? generate command line
             cmdline="$script_cmdline"
+            cmdline=$(clean_ws "$cmdline")
+            ;;
+
+		makepkg)
+			PREV_IFS="$IFS"
+			export IFS=' '
+			for option in $(cat $tmp_dir/makepkg-options); do declare opt_${option#--}=on; done
+			export IFS="$PREV_IFS"
+
+            dialog --checklist 'makepkg options' -1 -1 0 -- \
+            '--clean'		'clean up work files after build'			${opt_clean:-off}		\
+            '--cleanbuild'	'remove \$srcdir/ dir before building'		${opt_cleanbuild:-off}	\
+            '--force'		'overwrite existing package'				${opt_force:-off}		\
+            '--repackage'	'repackage contents without rebuilding'		${opt_repackage:-off}	\
+            '--syncdeps'	'install missing dependencies with pacman'	${opt_syncdeps:-off}	\
+            '--sign'		'sign the resulting package with gpg'		${opt_sign:-off}		\
+            2> "$tmp_dir/makepkg-options" || clear_exit
+            makepkg_options="$(cat $tmp_dir/makepkg-options)"
+
+            #? prompt for other options
+            [ -f "$tmp_dir/makepkg-options" ] \
+            && makepkg_options="$(cat $tmp_dir/makepkg-options)" || makepkg_options=""
+            dialog --inputbox "makepkg options (empty for none)" -1 -1 \
+            "$makepkg_options" 2> "$tmp_dir/makepkg-options" || clear_exit
+            makepkg_options="$(cat $tmp_dir/makepkg-options)"
+
+            #? generate command line
+            cmdline="makepkg $makepkg_options"
             cmdline=$(clean_ws "$cmdline")
             ;;
 
