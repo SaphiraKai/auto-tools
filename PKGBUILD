@@ -26,6 +26,15 @@ noextract=()
 sha256sums=('SKIP')
 validpgpkeys=('2916041854F0C0C2786846345B407F5B67CAAA85')
 
+pkgver() {
+	cd "$pkgname"
+	(
+		set -o pipefail
+		git describe --long 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' ||
+		printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+	)
+}
+
 #prepare() {}
 
 #build() {}
