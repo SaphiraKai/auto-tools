@@ -43,6 +43,6 @@ pkgver() {
 #check() {}
 
 package() {
-    install -Dm 755 'auto' "$pkgdir/usr/bin"
+    install -Dm 755 'auto' "$pkgdir/usr/bin/auto"
 }
 
