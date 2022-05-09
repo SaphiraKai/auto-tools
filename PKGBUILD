@@ -23,8 +23,8 @@ install=
 changelog=
 source=('auto')
 noextract=()
-sha256sums=('9e797f6beb36a9aa3a6ced14252608ca5c81546bd53e9ddba743b7efe29af24b')
-validpgpkeys=()
+sha256sums=('SKIP')
+validpgpkeys=('2916041854F0C0C2786846345B407F5B67CAAA85')
 
 #prepare() {}
 
