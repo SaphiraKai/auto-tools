@@ -252,7 +252,7 @@ while :; do
             #? prompt for other options
             [ -s "$tmp_dir/script-$selected_script_hash" ] \
             && script_cmdline="$(cat $tmp_dir/script-$selected_script_hash)" \
-            || script_cmdline="$selected_script"
+            || script_cmdline="./$selected_script"
             dialog --inputbox "script cmdline (empty for none)" -1 -1 \
             "$script_cmdline" 2> "$tmp_dir/script-$selected_script_hash" || clear_exit
             script_cmdline="$(cat $tmp_dir/script-$selected_script_hash)"
